@@ -1,2 +1,22 @@
 export * from "./generated/api";
-export * from "./generated/types";
+export type {
+  AlertItem,
+  AlertItemAffectedParty,
+  AlertItemSeverity,
+  AuthResponse,
+  CitationItem,
+  CitationItemSource,
+  Contract,
+  ContractAnalysis,
+  ContractSummary,
+  ContractWithAnalysis,
+  ErrorResponse,
+  HealthStatus,
+  LawArticle,
+  LoginBody,
+  RegisterBody,
+  RightItem,
+  SearchLawArticlesParams,
+  SearchLawArticlesSource,
+  UserPublic,
+} from "./generated/types";

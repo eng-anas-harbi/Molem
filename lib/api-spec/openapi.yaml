@@ -1,22 +1,28 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Molem - Saudi Labor Law Contract Auditor API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication endpoints
+  - name: contracts
+    description: Contract management
+  - name: analysis
+    description: AI-powered contract analysis
+  - name: law
+    description: Saudi Labor Law reference
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +30,317 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Log in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get the currently authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublic"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contracts:
+    get:
+      operationId: listContracts
+      tags: [contracts]
+      summary: List the authenticated user's contracts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of contracts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContractSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createContract
+      tags: [contracts]
+      summary: Submit a new contract as text
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContractBody"
+      responses:
+        "201":
+          description: Contract created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contracts/upload:
+    post:
+      operationId: uploadContract
+      tags: [contracts]
+      summary: Upload a contract as a PDF or DOCX file
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "201":
+          description: Contract uploaded and parsed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+        "400":
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contracts/{id}:
+    get:
+      operationId: getContract
+      tags: [contracts]
+      summary: Get a contract with its analysis
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contract with latest analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractWithAnalysis"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteContract
+      tags: [contracts]
+      summary: Delete a contract
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /contracts/{id}/analyze:
+    post:
+      operationId: analyzeContract
+      tags: [analysis]
+      summary: Run AI legal analysis on a contract using Saudi Labor Law RAG
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractAnalysis"
+        "404":
+          description: Contract not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: AI analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /law/articles:
+    get:
+      operationId: searchLawArticles
+      tags: [law]
+      summary: Search Saudi Labor Law articles by keyword
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [law, regulation]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Matching articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LawArticle"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +350,288 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    RegisterBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 2
+      required:
+        - email
+        - password
+        - name
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    UserPublic:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - createdAt
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserPublic"
+      required:
+        - token
+        - user
+
+    CreateContractBody:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 20
+      required:
+        - title
+        - content
+
+    ContractSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        fileName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        analysisStatus:
+          type: string
+          nullable: true
+      required:
+        - id
+        - title
+        - createdAt
+
+    Contract:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        fileName:
+          type: string
+          nullable: true
+        fileSize:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - content
+        - createdAt
+
+    RightItem:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        citations:
+          type: array
+          items:
+            type: string
+      required:
+        - title
+        - description
+        - citations
+
+    AlertItem:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [high, medium, low]
+        clause:
+          type: string
+        issue:
+          type: string
+        affectedParty:
+          type: string
+          enum: [employee, employer, both]
+        recommendation:
+          type: string
+        citations:
+          type: array
+          items:
+            type: string
+      required:
+        - severity
+        - clause
+        - issue
+        - affectedParty
+        - recommendation
+        - citations
+
+    CitationItem:
+      type: object
+      properties:
+        ref:
+          type: string
+        source:
+          type: string
+          enum: [law, regulation]
+        articleNumber:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+      required:
+        - ref
+        - source
+        - articleNumber
+        - title
+        - excerpt
+
+    ContractAnalysis:
+      type: object
+      properties:
+        id:
+          type: integer
+        contractId:
+          type: integer
+        status:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        contractType:
+          type: string
+          nullable: true
+        partiesDescription:
+          type: string
+          nullable: true
+        employeeRights:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/RightItem"
+        employerRights:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/RightItem"
+        alerts:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/AlertItem"
+        citations:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/CitationItem"
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - contractId
+        - status
+        - createdAt
+
+    ContractWithAnalysis:
+      type: object
+      properties:
+        contract:
+          $ref: "#/components/schemas/Contract"
+        analysis:
+          oneOf:
+            - $ref: "#/components/schemas/ContractAnalysis"
+            - type: "null"
+      required:
+        - contract
+
+    LawArticle:
+      type: object
+      properties:
+        id:
+          type: integer
+        source:
+          type: string
+        bookTitle:
+          type: string
+          nullable: true
+        chapterTitle:
+          type: string
+          nullable: true
+        sectionTitle:
+          type: string
+          nullable: true
+        articleNumber:
+          type: string
+        articleLabel:
+          type: string
+          nullable: true
+        content:
+          type: string
+        summary:
+          type: string
+          nullable: true
+      required:
+        - id
+        - source
+        - articleNumber
+        - content

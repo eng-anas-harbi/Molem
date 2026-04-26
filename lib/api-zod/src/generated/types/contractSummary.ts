@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface ContractSummary {
+  id: number;
+  title: string;
+  fileName?: string | null;
+  createdAt: Date;
+  analysisStatus?: string | null;
 }

@@ -5,7 +5,9 @@
  * Molem - Saudi Labor Law Contract Auditor API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserPublic } from "./userPublic";
 
-export interface HealthStatus {
-  status: string;
+export interface AuthResponse {
+  token: string;
+  user: UserPublic;
 }
