@@ -37,13 +37,20 @@ app.use(
     origin: (origin, cb) => {
       if (!origin) return cb(null, true); // mobile/curl/server-to-server
       if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-      // Allow any vercel.app preview domain for the molem project
+      // Allow any vercel.app preview domain
       if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return cb(null, true);
+      // Allow v0/Vercel preview iframes
+      if (/\.vusercontent\.net$/i.test(origin)) return cb(null, true);
+      if (/\.v0\.dev$/i.test(origin) || /\.v0\.app$/i.test(origin)) {
+        return cb(null, true);
+      }
       // Allow Replit preview/dev domains
       if (/\.replit\.dev$/i.test(origin) || /\.replit\.app$/i.test(origin)) {
         return cb(null, true);
       }
-      cb(new Error(`Origin not allowed: ${origin}`));
+      // Soft-fail: log and reject without throwing (so OPTIONS doesn't 500)
+      logger.warn({ origin }, "CORS origin not allowed");
+      cb(null, false);
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],

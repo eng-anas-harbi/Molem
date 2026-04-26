@@ -13,9 +13,24 @@ import {
 const router: IRouter = Router();
 
 router.post("/register", async (req: Request, res: Response) => {
-  const parsed = RegisterUserBody.safeParse(req.body);
+  // Accept common alternative field names from various frontends
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const normalizedBody = {
+    email: body.email ?? body.username ?? body.user ?? body.mail,
+    password: body.password ?? body.pass ?? body.pwd,
+    name: body.name ?? body.fullName ?? body.full_name ?? body.username ?? body.displayName,
+  };
+  const parsed = RegisterUserBody.safeParse(normalizedBody);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "بيانات غير صالحة" });
+    const issue = parsed.error.issues[0];
+    const field = issue?.path?.join(".") || "غير معروف";
+    const reason = issue?.message || "غير صالح";
+    req.log.warn({ field, reason, receivedKeys: Object.keys(body) }, "Register validation failed");
+    res.status(400).json({
+      error: `الحقل "${field}" ${reason}`,
+      field,
+      details: parsed.error.issues.map((i) => ({ field: i.path.join("."), message: i.message })),
+    });
     return;
   }
   const { email, password, name } = parsed.data;
@@ -47,9 +62,22 @@ router.post("/register", async (req: Request, res: Response) => {
 });
 
 router.post("/login", async (req: Request, res: Response) => {
-  const parsed = LoginUserBody.safeParse(req.body);
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const normalizedBody = {
+    email: body.email ?? body.username ?? body.user ?? body.mail,
+    password: body.password ?? body.pass ?? body.pwd,
+  };
+  const parsed = LoginUserBody.safeParse(normalizedBody);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "بيانات غير صالحة" });
+    const issue = parsed.error.issues[0];
+    const field = issue?.path?.join(".") || "غير معروف";
+    const reason = issue?.message || "غير صالح";
+    req.log.warn({ field, reason, receivedKeys: Object.keys(body) }, "Login validation failed");
+    res.status(400).json({
+      error: `الحقل "${field}" ${reason}`,
+      field,
+      details: parsed.error.issues.map((i) => ({ field: i.path.join("."), message: i.message })),
+    });
     return;
   }
   const { email, password } = parsed.data;
