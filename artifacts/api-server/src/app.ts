@@ -61,6 +61,14 @@ app.use(express.urlencoded({ extended: true, limit: "12mb" }));
 
 app.use("/api", router);
 
+app.get("/", (_req, res) => {
+  res.json({
+    name: "Molem API",
+    description: "Saudi labor law contract auditor backend",
+    docs: "/api/healthz",
+  });
+});
+
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   req.log.error({ err }, "Unhandled error");
   if (res.headersSent) return;
