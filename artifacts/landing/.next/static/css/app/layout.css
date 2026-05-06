@@ -995,6 +995,9 @@
     --tw-translate-y: calc(-50% - 2px);
     translate: var(--tw-translate-x) var(--tw-translate-y);
   }
+  .scale-\[1\.01\] {
+    scale: 1.01;
+  }
   .rotate-45 {
     rotate: 45deg;
   }

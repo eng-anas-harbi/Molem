@@ -32,6 +32,7 @@ export default function NewContractPage() {
   const [file, setFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -39,29 +40,44 @@ export default function NewContractPage() {
     }
   }, [authLoading, isAuthenticated, router])
 
+  const validateAndSetFile = (selectedFile: File) => {
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setError("حجم الملف يجب أن يكون أقل من 10 ميجابايت")
+      return
+    }
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain"
+    ]
+    if (!allowedTypes.includes(selectedFile.type)) {
+      setError("يرجى اختيار ملف PDF أو DOCX أو TXT")
+      return
+    }
+    setFile(selectedFile)
+    setError("")
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
-    if (selectedFile) {
-      // Check file size (10MB limit)
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        setError("حجم الملف يجب أن يكون أقل من 10 ميجابايت")
-        return
-      }
-      
-      // Check file type
-      const allowedTypes = [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "text/plain"
-      ]
-      if (!allowedTypes.includes(selectedFile.type)) {
-        setError("يرجى اختيار ملف PDF أو DOCX أو TXT")
-        return
-      }
-      
-      setFile(selectedFile)
-      setError("")
-    }
+    if (selectedFile) validateAndSetFile(selectedFile)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const dropped = e.dataTransfer.files?.[0]
+    if (dropped) validateAndSetFile(dropped)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -226,14 +242,22 @@ export default function NewContractPage() {
                 ) : (
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex flex-col items-center justify-center gap-4 p-8 bg-card border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 transition-colors"
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`flex flex-col items-center justify-center gap-4 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 ${
+                      isDragging
+                        ? "border-primary bg-primary/5 scale-[1.01]"
+                        : "bg-card border-border hover:border-primary/50"
+                    }`}
                   >
-                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                      <Upload className="w-6 h-6 text-muted-foreground" />
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isDragging ? "bg-primary/10" : "bg-muted"}`}>
+                      <Upload className={`w-6 h-6 transition-colors ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
                     </div>
                     <div className="text-center">
                       <p className="font-medium text-foreground">
-                        اضغط لاختيار ملف
+                        {isDragging ? "أفلت الملف هنا" : "اسحب الملف هنا أو اضغط للاختيار"}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
                         PDF, DOCX, TXT (حد أقصى 10 MB)
