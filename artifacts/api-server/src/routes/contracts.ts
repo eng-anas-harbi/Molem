@@ -86,7 +86,10 @@ router.post(
       return;
     }
     if (!text || text.trim().length < 20) {
-      res.status(400).json({ error: "تعذّر استخراج نص كافٍ من الملف" });
+      res.status(400).json({
+        error:
+          "تعذّر استخراج نص كافٍ من الملف. تأكّد أن الملف يحتوي على نص قابل للقراءة وليس صورة ممسوحة ضوئياً (PDF مصوَّر).",
+      });
       return;
     }
     const { userId } = (req as AuthedRequest).user;

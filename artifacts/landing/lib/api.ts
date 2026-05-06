@@ -105,8 +105,8 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
   const response = await fetch(url, { ...options, headers })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "حدث خطأ غير متوقع" }))
-    throw new Error(error.message || `HTTP error! status: ${response.status}`)
+    const error = await response.json().catch(() => ({ error: "حدث خطأ غير متوقع" }))
+    throw new Error(error.error || error.message || `HTTP error! status: ${response.status}`)
   }
 
   return response.json()
