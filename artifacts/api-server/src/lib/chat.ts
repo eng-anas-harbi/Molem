@@ -80,17 +80,30 @@ ${question.slice(0, 4000)}
 اختر بين 5 و 15 مادة هي الأكثر صلة بالإجابة على هذا السؤال (مع مراعاة سياق المحادثة إن وُجد). أعد JSON فقط:
 { "articleIds": [<معرّف>, <معرّف>, ...] }`;
 
-  type Resp = { articleIds: number[] };
-  const result = await generateJson<Resp>(sys, user, {
-    type: "object",
-    properties: {
-      articleIds: { type: "array", items: { type: "integer" } },
-    },
-    required: ["articleIds"],
-  });
-
   const validIds = new Set(index.map((a) => a.id));
-  return (result.articleIds || []).filter((id) => validIds.has(id)).slice(0, 20);
+
+  try {
+    type Resp = { articleIds: number[] };
+    const result = await generateJson<Resp>(sys, user, {
+      type: "object",
+      properties: {
+        articleIds: { type: "array", items: { type: "integer" } },
+      },
+      required: ["articleIds"],
+    });
+
+    const filtered = (result.articleIds || []).filter((id) => validIds.has(id)).slice(0, 20);
+    if (filtered.length > 0) return filtered;
+  } catch {
+    // fall through to text-search fallback
+  }
+
+  // Fallback: keyword text search when Gemini picks no valid IDs
+  const fallback = await searchArticles(question.slice(0, 200), undefined, 10);
+  if (fallback.length > 0) return fallback.map((a) => a.id);
+
+  // Last resort: return first 10 articles from the index
+  return index.slice(0, 10).map((a) => a.id);
 }
 
 async function performAnswer(
@@ -175,7 +188,7 @@ export async function answerLegalQuestion(
   const articleIds = await pickArticlesForQuestion(question, history);
   if (articleIds.length === 0) {
     throw new Error(
-      "تعذّر العثور على مواد قانونية مرجعية. تأكّد من تشغيل سكربت تحميل نظام العمل (seedLaw).",
+      "لم يتمكن النظام من العثور على مواد قانونية ذات صلة بسؤالك. حاول إعادة صياغة السؤال.",
     );
   }
   return performAnswer(question, history, articleIds);
