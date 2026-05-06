@@ -48,10 +48,14 @@ export default function NewContractPage() {
     const allowedTypes = [
       "application/pdf",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
       "text/plain"
     ]
-    if (!allowedTypes.includes(selectedFile.type)) {
-      setError("يرجى اختيار ملف PDF أو DOCX أو TXT")
+    const name = selectedFile.name.toLowerCase()
+    const allowedExtensions = [".pdf", ".docx", ".doc", ".txt"]
+    const hasValidExt = allowedExtensions.some((ext) => name.endsWith(ext))
+    if (!allowedTypes.includes(selectedFile.type) && !hasValidExt) {
+      setError("يرجى اختيار ملف PDF أو DOC أو DOCX أو TXT")
       return
     }
     setFile(selectedFile)
@@ -260,7 +264,7 @@ export default function NewContractPage() {
                         {isDragging ? "أفلت الملف هنا" : "اسحب الملف هنا أو اضغط للاختيار"}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        PDF, DOCX, TXT (حد أقصى 10 MB)
+                        PDF, DOC, DOCX, TXT (حد أقصى 10 MB)
                       </p>
                     </div>
                   </div>
@@ -269,7 +273,7 @@ export default function NewContractPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                   onChange={handleFileChange}
                   className="hidden"
                 />
