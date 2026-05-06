@@ -9,10 +9,11 @@ import {
   requireAuth,
   type AuthedRequest,
 } from "../lib/auth";
+import { authRegisterLimiter, authLoginLimiter } from "../lib/rateLimits";
 
 const router: IRouter = Router();
 
-router.post("/register", async (req: Request, res: Response) => {
+router.post("/register", authRegisterLimiter, async (req: Request, res: Response) => {
   // Accept common alternative field names from various frontends
   const body = (req.body ?? {}) as Record<string, unknown>;
   const normalizedBody = {
@@ -61,7 +62,7 @@ router.post("/register", async (req: Request, res: Response) => {
   res.status(201).json({ token, user });
 });
 
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/login", authLoginLimiter, async (req: Request, res: Response) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const normalizedBody = {
     email: body.email ?? body.username ?? body.user ?? body.mail,

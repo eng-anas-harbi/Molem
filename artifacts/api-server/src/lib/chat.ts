@@ -1,5 +1,5 @@
 import { ai } from "@workspace/integrations-gemini-ai";
-import { getArticleIndex, getArticlesByIds } from "./lawIndex";
+import { getArticleIndex, getArticlesByIds, searchArticles } from "./lawIndex";
 import type { ChatCitation } from "@workspace/db";
 
 const MODEL = "gemini-2.5-flash";

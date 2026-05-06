@@ -12,6 +12,9 @@ import {
   generateConversationTitle,
   type ChatHistoryItem,
 } from "../lib/chat";
+import { chatMessageLimiter } from "../lib/rateLimits";
+
+const HISTORY_FETCH_LIMIT = 20;
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -72,7 +75,7 @@ router.delete("/conversations/:id", async (req: Request, res: Response) => {
   res.status(204).end();
 });
 
-router.post("/messages", async (req: Request, res: Response) => {
+router.post("/messages", chatMessageLimiter, async (req: Request, res: Response) => {
   const { userId } = (req as AuthedRequest).user;
   const body = req.body as { message?: unknown; conversationId?: unknown };
   const message = typeof body.message === "string" ? body.message.trim() : "";
@@ -113,12 +116,16 @@ router.post("/messages", async (req: Request, res: Response) => {
     conversationId = conversation.id;
   }
 
-  // Load history (before inserting the new user message)
+  // Load recent history only (before inserting the new user message).
+  // Fetching only the last N rows avoids unbounded memory and DB work for
+  // long conversations; formatHistory() already trims to the last 6 turns.
   const priorMessages = await db
     .select()
     .from(chatMessagesTable)
     .where(eq(chatMessagesTable.conversationId, conversation.id))
-    .orderBy(asc(chatMessagesTable.createdAt));
+    .orderBy(desc(chatMessagesTable.createdAt))
+    .limit(HISTORY_FETCH_LIMIT)
+    .then((rows) => rows.reverse());
 
   const history: ChatHistoryItem[] = priorMessages.map((m) => ({
     role: m.role === "assistant" ? "assistant" : "user",

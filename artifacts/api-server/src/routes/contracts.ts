@@ -6,6 +6,11 @@ import { CreateContractBody, GetContractParams } from "@workspace/api-zod";
 import { requireAuth, type AuthedRequest } from "../lib/auth";
 import { extractTextFromFile } from "../lib/pdf";
 import { analyzeContract } from "../lib/analyze";
+import {
+  uploadLimiter,
+  analyzeLimiter,
+  uploadConcurrencyGuard,
+} from "../lib/rateLimits";
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -68,15 +73,22 @@ router.post("/", async (req: Request, res: Response) => {
   });
 });
 
+// uploadConcurrencyGuard runs BEFORE multer so the in-memory slot is
+// claimed before any file bytes are buffered, providing actual back-pressure.
+// The slot is released exactly once via response finish/close events (see rateLimits.ts).
 router.post(
   "/upload",
+  uploadLimiter,
+  uploadConcurrencyGuard,
   upload.single("file"),
   async (req: Request, res: Response) => {
+    const { userId } = (req as AuthedRequest).user;
     const file = req.file;
     if (!file) {
       res.status(400).json({ error: "لم يتم رفع أي ملف" });
       return;
     }
+
     let text: string;
     try {
       text = await extractTextFromFile(file.buffer, file.mimetype, file.originalname);
@@ -85,6 +97,7 @@ router.post(
       res.status(400).json({ error: msg });
       return;
     }
+
     if (!text || text.trim().length < 20) {
       res.status(400).json({
         error:
@@ -92,7 +105,6 @@ router.post(
       });
       return;
     }
-    const { userId } = (req as AuthedRequest).user;
     const title =
       (typeof req.body?.title === "string" && req.body.title.trim()) ||
       file.originalname.replace(/\.[^.]+$/, "").slice(0, 500);
@@ -175,7 +187,10 @@ router.delete("/:id", async (req: Request, res: Response) => {
   res.status(204).end();
 });
 
-router.post("/:id/analyze", async (req: Request, res: Response) => {
+// Postgres unique constraint violation error code
+const PG_UNIQUE_VIOLATION = "23505";
+
+router.post("/:id/analyze", analyzeLimiter, async (req: Request, res: Response) => {
   const params = GetContractParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "معرّف غير صالح" });
@@ -194,11 +209,24 @@ router.post("/:id/analyze", async (req: Request, res: Response) => {
     return;
   }
 
-  // Create a pending analysis row
-  const [pending] = await db
-    .insert(contractAnalysesTable)
-    .values({ contractId: contract.id, status: "running" })
-    .returning();
+  // Insert a running row. The partial unique index on (contract_id) WHERE
+  // status='running' ensures this is atomic: a second concurrent request for
+  // the same contract will get a 23505 unique-constraint violation rather than
+  // racing past a check-then-insert window.
+  let pending: typeof contractAnalysesTable.$inferSelect;
+  try {
+    [pending] = await db
+      .insert(contractAnalysesTable)
+      .values({ contractId: contract.id, status: "running" })
+      .returning();
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code === PG_UNIQUE_VIOLATION) {
+      res.status(409).json({ error: "التحليل قيد التنفيذ بالفعل، يرجى الانتظار" });
+      return;
+    }
+    throw err;
+  }
 
   try {
     const result = await analyzeContract(contract.content);

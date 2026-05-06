@@ -6,7 +6,9 @@ import {
   integer,
   varchar,
   jsonb,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import { contractsTable } from "./contracts";
 
@@ -33,23 +35,35 @@ export type CitationItem = {
   excerpt: string;
 };
 
-export const contractAnalysesTable = pgTable("contract_analyses", {
-  id: serial("id").primaryKey(),
-  contractId: integer("contract_id")
-    .notNull()
-    .references(() => contractsTable.id, { onDelete: "cascade" }),
-  status: varchar("status", { length: 20 }).notNull().default("pending"),
-  summary: text("summary"),
-  contractType: varchar("contract_type", { length: 200 }),
-  partiesDescription: text("parties_description"),
-  employeeRights: jsonb("employee_rights").$type<RightItem[]>(),
-  employerRights: jsonb("employer_rights").$type<RightItem[]>(),
-  alerts: jsonb("alerts").$type<AlertItem[]>(),
-  citations: jsonb("citations").$type<CitationItem[]>(),
-  errorMessage: text("error_message"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  completedAt: timestamp("completed_at", { withTimezone: true }),
-});
+export const contractAnalysesTable = pgTable(
+  "contract_analyses",
+  {
+    id: serial("id").primaryKey(),
+    contractId: integer("contract_id")
+      .notNull()
+      .references(() => contractsTable.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    summary: text("summary"),
+    contractType: varchar("contract_type", { length: 200 }),
+    partiesDescription: text("parties_description"),
+    employeeRights: jsonb("employee_rights").$type<RightItem[]>(),
+    employerRights: jsonb("employer_rights").$type<RightItem[]>(),
+    alerts: jsonb("alerts").$type<AlertItem[]>(),
+    citations: jsonb("citations").$type<CitationItem[]>(),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    // Enforce at most one running analysis per contract at the DB level.
+    // This partial unique index makes the check-then-insert atomic: a second
+    // concurrent INSERT while another row has status='running' for the same
+    // contract_id will raise a unique constraint violation (error code 23505).
+    uniqueIndex("contract_analyses_one_running_idx")
+      .on(table.contractId)
+      .where(sql`${table.status} = 'running'`),
+  ],
+);
 
 export type ContractAnalysis = typeof contractAnalysesTable.$inferSelect;
 export type InsertContractAnalysis = typeof contractAnalysesTable.$inferInsert;
