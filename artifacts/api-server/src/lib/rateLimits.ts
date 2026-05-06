@@ -1,10 +1,12 @@
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import type { Request, Response, NextFunction } from "express";
 import type { AuthedRequest } from "./auth";
 
 function userKeyGenerator(req: Request): string {
   const authed = req as AuthedRequest;
-  return authed.user?.userId != null ? `user:${authed.user.userId}` : req.ip ?? "unknown";
+  return authed.user?.userId != null
+    ? `user:${authed.user.userId}`
+    : ipKeyGenerator(req.ip ?? "unknown");
 }
 
 export const authRegisterLimiter = rateLimit({
@@ -29,7 +31,7 @@ export const authLoginIpLimiter = rateLimit({
   standardHeaders: "draft-8",
   legacyHeaders: false,
   skipSuccessfulRequests: true,
-  keyGenerator: (req: Request) => `login-ip:${req.ip ?? "unknown"}`,
+  keyGenerator: (req: Request) => `login-ip:${ipKeyGenerator(req.ip ?? "unknown")}`,
   message: { error: "عدد كبير من المحاولات من هذا العنوان، يرجى المحاولة بعد 15 دقيقة" },
 });
 
@@ -42,7 +44,7 @@ export const authLoginLimiter = rateLimit({
   skipSuccessfulRequests: true,
   keyGenerator: (req: Request) => {
     const email = extractLoginEmail(req);
-    const ip = req.ip ?? "unknown";
+    const ip = ipKeyGenerator(req.ip ?? "unknown");
     return email ? `login-acct:${ip}:${email}` : `login-ip:${ip}`;
   },
   message: { error: "عدد كبير من محاولات تسجيل الدخول، يرجى المحاولة بعد 15 دقيقة" },
@@ -76,9 +78,6 @@ export const chatMessageLimiter = rateLimit({
 });
 
 // Per-user upload concurrency guard.
-// The slot is acquired before multer buffers the file so back-pressure is
-// applied before any memory allocation, and released exactly once when the
-// response closes (whether success, error, or client disconnect).
 const uploadConcurrency = new Map<number, number>();
 const MAX_CONCURRENT_UPLOADS = 2;
 
@@ -99,16 +98,9 @@ function releaseUploadSlot(userId: number): void {
   }
 }
 
-/**
- * Express middleware that must be placed BEFORE multer in the upload route.
- * Acquires a per-user concurrency slot so that large file buffers cannot
- * be created concurrently beyond the cap. Releases the slot exactly once
- * on response finish/close.
- */
 export function uploadConcurrencyGuard(req: Request, res: Response, next: NextFunction): void {
   const userId = (req as AuthedRequest).user?.userId;
   if (userId == null) {
-    // requireAuth already rejected unauthenticated requests; this is a guard.
     res.status(401).json({ error: "غير مصرح" });
     return;
   }
