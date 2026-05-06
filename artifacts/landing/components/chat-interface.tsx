@@ -363,7 +363,7 @@ export function ChatInterface() {
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-card border border-border hover:bg-secondary hover:border-primary/30 hover:scale-105 transition-all duration-200 cursor-default">
                   <Gavel className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                  <span className="text-xs sm:text-sm text-foreground">اس��شارات قانونية</span>
+                  <span className="text-xs sm:text-sm text-foreground">استشارات قانونية</span>
                 </div>
               </div>
 
