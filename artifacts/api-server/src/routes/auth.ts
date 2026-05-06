@@ -9,7 +9,7 @@ import {
   requireAuth,
   type AuthedRequest,
 } from "../lib/auth";
-import { authRegisterLimiter, authLoginLimiter } from "../lib/rateLimits";
+import { authRegisterLimiter, authLoginLimiter, authLoginIpLimiter } from "../lib/rateLimits";
 
 const router: IRouter = Router();
 
@@ -62,7 +62,7 @@ router.post("/register", authRegisterLimiter, async (req: Request, res: Response
   res.status(201).json({ token, user });
 });
 
-router.post("/login", authLoginLimiter, async (req: Request, res: Response) => {
+router.post("/login", authLoginIpLimiter, authLoginLimiter, async (req: Request, res: Response) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const normalizedBody = {
     email: body.email ?? body.username ?? body.user ?? body.mail,

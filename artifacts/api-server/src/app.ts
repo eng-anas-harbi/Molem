@@ -6,6 +6,11 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Trust the immediate upstream proxy (Replit's reverse proxy) so that
+// req.ip reflects the real client IP from X-Forwarded-For, which is
+// required for IP-based rate limiting to work correctly in production.
+app.set("trust proxy", 1);
+
 const ALLOWED_ORIGINS = [
   "https://v0-molem-psau.vercel.app",
   "http://localhost:3000",

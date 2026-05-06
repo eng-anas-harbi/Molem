@@ -8,19 +8,44 @@ function userKeyGenerator(req: Request): string {
 }
 
 export const authRegisterLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { error: "طلبات كثيرة جداً، حاول مرة أخرى بعد قليل" },
+  message: { error: "تم تجاوز الحد المسموح لإنشاء الحسابات، يرجى المحاولة لاحقاً" },
 });
 
-export const authLoginLimiter = rateLimit({
+function extractLoginEmail(req: Request): string {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const raw =
+    body["email"] ?? body["username"] ?? body["user"] ?? body["mail"];
+  return typeof raw === "string" ? raw.toLowerCase().trim() : "";
+}
+
+// Layer 1: global per-IP cap — catches multi-account password spraying.
+export const authLoginIpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: 30,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { error: "طلبات كثيرة جداً، حاول مرة أخرى بعد قليل" },
+  skipSuccessfulRequests: true,
+  keyGenerator: (req: Request) => `login-ip:${req.ip ?? "unknown"}`,
+  message: { error: "عدد كبير من المحاولات من هذا العنوان، يرجى المحاولة بعد 15 دقيقة" },
+});
+
+// Layer 2: per-IP+account cap — catches per-account brute-forcing.
+export const authLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req: Request) => {
+    const email = extractLoginEmail(req);
+    const ip = req.ip ?? "unknown";
+    return email ? `login-acct:${ip}:${email}` : `login-ip:${ip}`;
+  },
+  message: { error: "عدد كبير من محاولات تسجيل الدخول، يرجى المحاولة بعد 15 دقيقة" },
 });
 
 export const uploadLimiter = rateLimit({
