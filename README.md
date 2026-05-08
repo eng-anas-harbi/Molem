@@ -218,7 +218,7 @@ The diagram below shows the core processing pipeline (R1–R9):
 
 Shows the full system from target users through the frontend, API bridge, and all backend processing modules, including integration with the Saudi Ministry of Justice API for regulation data.
 
-![High-Level Architecture](https://raw.githubusercontent.com/eng-anas-harbi/Molem/main/docs/high_level_architecture.png)
+![High-Level Architecture](docs/high_level_architecture.png)
 
 **Key layers:**
 - **Front-End Layer** — Web/Mobile UI for non-legal professionals, individuals, and small business owners
@@ -232,7 +232,7 @@ Shows the full system from target users through the frontend, API bridge, and al
 
 Breaks down every internal service across the frontend, API, security, AI processing, legal compliance, and data layers.
 
-![Detailed Architecture](https://raw.githubusercontent.com/eng-anas-harbi/Molem/main/docs/detailed_architecture.png)
+![Detailed Architecture](docs/detailed_architecture.png)
 
 **AI Processing Pipeline:**
 Text Extraction → Preprocessing → NLP Model → Clause Segmentation → Clause Classification → Legal Reasoning Engine → Risk Scoring → Report Generation
@@ -249,7 +249,7 @@ Regulations Integration → Saudi Law Matching → Compliance Verification → P
 
 End-to-end workflow across four phases: Upload → Processing → Compliance → Output.
 
-![Workflow Diagram](https://raw.githubusercontent.com/eng-anas-harbi/Molem/main/docs/workflow.png)
+![Workflow Diagram](docs/workflow.png)
 
 | Phase | Steps |
 |---|---|
@@ -264,7 +264,7 @@ End-to-end workflow across four phases: Upload → Processing → Compliance →
 
 Full AWS deployment with VPC isolation, WAF, auto-scaling compute, encrypted storage, and audit logging.
 
-![AWS Architecture](https://raw.githubusercontent.com/eng-anas-harbi/Molem/main/docs/diagram_aws.png)
+![AWS Architecture](docs/diagram_aws.png)
 
 **AWS Services used:**
 | Service | Role |
