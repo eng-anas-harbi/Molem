@@ -175,6 +175,8 @@ The diagram below shows the core processing pipeline (R1–R9):
 
 ---
 
+## Demo Technical Architecture
+
 ```
 ┌─────────────────────────────────────────────┐
 │              Browser (Next.js)              │
