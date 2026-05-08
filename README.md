@@ -63,7 +63,100 @@
 
 ---
 
-## Architecture
+## System Flow
+
+The diagram below shows the core processing pipeline (R1–R9):
+
+```
+                        ┌─────────────────┐
+                        │  User Uploads   │
+                        │  Contract (R1)  │
+                        └────────┬────────┘
+                                 │
+                    ┌────────────▼────────────┐
+                    │   Is file valid?        │
+                    │  (format + size check)  │
+                    └─────┬──────────┬────────┘
+                          │ No       │ Yes
+                    ┌─────▼──┐  ┌───▼────────────────┐
+                    │ Display│  │ Extract & parse     │
+                    │ Error  │  │ text (R2)           │
+                    └────────┘  │ PDF / DOCX / TXT    │
+                                └───────────┬─────────┘
+                                            │
+                                ┌───────────▼─────────┐
+                                │  Analyze Clauses    │
+                                │  via Gemini AI (R3) │
+                                └───────────┬─────────┘
+                                            │
+                          ┌─────────────────┴──────────────────┐
+                          │                                    │
+               ┌──────────▼──────────┐            ┌───────────▼──────────┐
+               │  Highlight Risk     │            │  Detect & Flag Risk  │
+               │  Clauses (R4)       │            │  w/ Severity (R6)    │
+               └──────────┬──────────┘            └───────────┬──────────┘
+                          │                                    │
+                          └─────────────────┬──────────────────┘
+                                            │
+                                ┌───────────▼──────────┐
+                                │  Generate Summary    │
+                                │  in Plain Arabic (R7)│
+                                └───────────┬──────────┘
+                                            │
+                                ┌───────────▼──────────┐
+                                │  Display Analysis    │
+                                │  & Summary (R9)      │
+                                └───────────┬──────────┘
+                                            │
+                               ┌────────────▼────────────┐
+                               │    Need AI Chat?        │
+                               └──────┬──────────┬───────┘
+                                      │ Yes       │ No
+                           ┌──────────▼───┐    ┌──▼──────┐
+                           │ Process AI   │    │  Done   │
+                           │ Chat (R5)    │    └─────────┘
+                           └──────────────┘
+```
+
+> **Note on deployment:** The system was designed with a cloud-native architecture in mind. For the course demo, the full application is hosted on **Replit** (frontend + backend on a single domain via reverse proxy), which simplifies setup without affecting functionality.
+
+---
+
+## Use Cases
+
+### UC-1: Upload Contract File
+
+| Field | Details |
+|---|---|
+| **Actor** | User |
+| **Difficulty** | Easy |
+| **Pre-condition** | User must be logged into the Molem application |
+| **Post-condition** | File is successfully stored and ready for text extraction |
+
+**Flow:**
+1. User navigates to the Upload section and selects a PDF, DOCX, DOC, or TXT file
+2. System validates the file format and size (max 10 MB)
+3. System extracts and stores the raw text in the database
+4. System confirms successful upload and shows the contract in the dashboard
+
+---
+
+### UC-2: Generate Simplified Summary
+
+| Field | Details |
+|---|---|
+| **Actor** | User |
+| **Difficulty** | Hard |
+| **Pre-condition** | System must have successfully extracted the contract text |
+| **Post-condition** | A plain-language summary is presented to the user |
+
+**Flow:**
+1. System sends the extracted contract text to the AI engine (Gemini 2.5 Flash)
+2. AI identifies and classifies legal terms and clause types
+3. AI translates complex legal jargon into plain language
+4. Structured summary is displayed on the contract detail page with rights, alerts, and law citations
+
+---
 
 ```
 ┌─────────────────────────────────────────────┐
