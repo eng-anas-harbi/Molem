@@ -56,10 +56,27 @@
 - **524 law articles** seeded from Saudi Labor Law (227) and Executive Regulations (297)
 - Two-pass RAG: article selection → structured JSON answer
 
-### Infrastructure
+### Infrastructure (Demo)
 - **Replit** monorepo (pnpm workspaces)
 - Shared reverse proxy: `/` → Next.js, `/api` → Express
 - Deployed on **Replit Autoscale**
+
+---
+
+## Deployment Strategy
+
+> **Demo vs. Production:** The live demo runs on **Replit** — a single-server setup chosen for simplicity and ease of evaluation during the course. The AWS architecture below is the **full production plan**, designed for scalability, high availability, and compliance with Saudi data residency requirements.
+
+| | Demo (Current) | Production Plan (AWS) |
+|---|---|---|
+| **Platform** | Replit (single server) | AWS Cloud (VPC, multi-AZ) |
+| **Entry Point** | Replit proxy | Route 53 → CloudFront → WAF → API Gateway |
+| **Compute** | Single process | EC2 Auto Scaling Group (ALB) |
+| **Database** | Replit PostgreSQL | RDS PostgreSQL (encrypted at rest) |
+| **File Storage** | Server filesystem | S3 (server-side encryption) |
+| **Secrets / Keys** | Replit Secrets | AWS KMS + IAM Roles & Policies |
+| **Monitoring** | Workflow logs | CloudWatch metrics + CloudTrail audit logs |
+| **External API** | Gemini via Replit | Saudi Ministry of Justice API + Gemini |
 
 ---
 
@@ -190,6 +207,79 @@ The diagram below shows the core processing pipeline (R1–R9):
 │  law_articles (524 rows), chat tables       │
 └─────────────────────────────────────────────┘
 ```
+
+---
+
+## AWS Production Architecture
+
+> The diagrams below describe the **planned production deployment** on AWS. The current demo runs on Replit as a simplified single-server setup.
+
+### High-Level System Architecture
+
+Shows the full system from target users through the frontend, API bridge, and all backend processing modules, including integration with the Saudi Ministry of Justice API for regulation data.
+
+![High-Level Architecture](https://raw.githubusercontent.com/eng-anas-harbi/Molem/main/docs/high_level_architecture.png)
+
+**Key layers:**
+- **Front-End Layer** — Web/Mobile UI for non-legal professionals, individuals, and small business owners
+- **Interface Layer** — API Layer acting as communication bridge between frontend and backend
+- **Back-End Layer** — AI Analysis Engine → Clause Risk Assessment → Regulations Integration → Compliance Monitoring → Secure Database
+- **External API** — Saudi Ministry of Justice API (legal data retrieval)
+
+---
+
+### Detailed Component Architecture
+
+Breaks down every internal service across the frontend, API, security, AI processing, legal compliance, and data layers.
+
+![Detailed Architecture](https://raw.githubusercontent.com/eng-anas-harbi/Molem/main/docs/detailed_architecture.png)
+
+**AI Processing Pipeline:**
+Text Extraction → Preprocessing → NLP Model → Clause Segmentation → Clause Classification → Legal Reasoning Engine → Risk Scoring → Report Generation
+
+**Security Layer:**
+Audit Monitoring · Activity Logging · Encryption Service · Access Control Manager
+
+**Legal Compliance Layer:**
+Regulations Integration → Saudi Law Matching → Compliance Verification → Policy Update Service
+
+---
+
+### Processing Workflow
+
+End-to-end workflow across four phases: Upload → Processing → Compliance → Output.
+
+![Workflow Diagram](https://raw.githubusercontent.com/eng-anas-harbi/Molem/main/docs/workflow.png)
+
+| Phase | Steps |
+|---|---|
+| **Upload** | User uploads contract → validate file format → extract text |
+| **Processing** | NLP segmentation → classify clauses → assess risk → flag high-risk items |
+| **Compliance** | Compare against Saudi Labor Law articles → check compliance → generate warning |
+| **Output** | Compile risk report → send report to user |
+
+---
+
+### AWS Cloud Infrastructure
+
+Full AWS deployment with VPC isolation, WAF, auto-scaling compute, encrypted storage, and audit logging.
+
+![AWS Architecture](https://raw.githubusercontent.com/eng-anas-harbi/Molem/main/docs/diagram_aws.png)
+
+**AWS Services used:**
+| Service | Role |
+|---|---|
+| **Route 53** | DNS routing |
+| **WAF** | Web Application Firewall — blocks malicious traffic |
+| **API Gateway** | Managed API entry point |
+| **Load Balancer** | Distributes traffic across EC2 instances |
+| **EC2 Auto Scaling** | Clause Risk Assessment + AI Analysis Engine |
+| **S3 (Encrypted)** | Contract file storage |
+| **RDS PostgreSQL (Encrypted)** | Primary database |
+| **KMS** | Encryption key management |
+| **IAM Roles & Policies** | Access control |
+| **CloudWatch** | Metrics & logs monitoring |
+| **CloudTrail** | Audit logs for all API calls |
 
 ---
 
