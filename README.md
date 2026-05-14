@@ -5,6 +5,7 @@
 
 > A full-stack intelligent legal assistant that analyzes employment contracts against Saudi Labor Law and its Executive Regulations, built as a course project for **Software Engineering Fundamentals**.
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Available-blue?style=for-the-badge)](https://legal-contract-advisor--sfas21.replit.app)
 [![Demo Video](https://img.shields.io/badge/Demo%20Video-YouTube-red?style=for-the-badge&logo=youtube)](https://youtu.be/i4MqOCM5Fb0)
 
 </div>
